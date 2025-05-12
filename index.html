@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHUATS Attendance System</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* Neubrutalism Theme */
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #fef6e4;
+        }
+        .neu-brutal {
+            border: 3px solid #001858;
+            box-shadow: 5px 5px 0px #001858;
+            transition: all 0.2s ease;
+        }
+        .neu-brutal:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 7px 7px 0px #001858;
+        }
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div id="app" class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold mb-8 text-center neu-brutal bg-[#f3d2c1] p-4 inline-block">SHUATS Attendance System</h1>
+
+        <div class="grid md:grid-cols-2 gap-8">
+            <!-- Attendance Form -->
+            <div class="neu-brutal bg-white p-6">
+                <h2 class="text-2xl font-bold mb-4">Mark Attendance</h2>
+                <form @submit.prevent="addAttendance" class="space-y-4">
+                    <div>
+                        <label class="block mb-2">Date:</label>
+                        <input type="date" v-model="date" required class="w-full p-2 neu-brutal">
+                    </div>
+                    <div>
+                        <label class="block mb-2">Course/Class:</label>
+                        <input type="text" v-model="course" required class="w-full p-2 neu-brutal" placeholder="Enter course name">
+                    </div>
+                    <div>
+                        <label class="block mb-2">Student Name:</label>
+                        <input type="text" v-model="studentName" required class="w-full p-2 neu-brutal" placeholder="Enter student name">
+                    </div>
+                    <div>
+                        <label class="block mb-2">Student ID:</label>
+                        <input type="text" v-model="studentId" required class="w-full p-2 neu-brutal" placeholder="Enter student ID">
+                    </div>
+                    <div>
+                        <label class="block mb-2">Status:</label>
+                        <select v-model="status" required class="w-full p-2 neu-brutal">
+                            <option value="present">Present</option>
+                            <option value="absent">Absent</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full p-3 neu-brutal bg-[#f582ae] hover:bg-[#f582ae]/80 font-bold">
+                        Save Attendance
+                    </button>
+                </form>
+            </div>
+
+            <!-- Attendance List -->
+            <div class="neu-brutal bg-white p-6">
+                <h2 class="text-2xl font-bold mb-4">Attendance Records</h2>
+                <div v-if="loading" class="text-center py-4">
+                    <i class="bi bi-arrow-repeat loading-spinner text-4xl"></i>
+                </div>
+                <div v-else-if="attendanceList.length === 0" class="text-center py-4">
+                    No attendance records found
+                </div>
+                <div v-else class="space-y-4">
+                    <div v-for="(record, index) in attendanceList" :key="index" 
+                         class="neu-brutal p-4" 
+                         :class="{'bg-green-100': record.status === 'present', 'bg-red-100': record.status === 'absent'}">
+                        <p class="font-bold">Date: {{record.date}}</p>
+                        <p>Course: {{record.course}}</p>
+                        <p>Name: {{record.studentName}}</p>
+                        <p>ID: {{record.studentId}}</p>
+                        <p>Status: {{record.status.toUpperCase()}}</p>
+                        <button @click="deleteRecord(record._id)" class="mt-2 p-2 neu-brutal bg-red-400 hover:bg-red-500">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue
+
+        createApp({
+            data() {
+                return {
+                    date: '',
+                    course: '',
+                    studentName: '',
+                    studentId: '',
+                    status: 'present',
+                    attendanceList: [],
+                    loading: false
+                }
+            },
+            methods: {
+                async fetchAttendance() {
+                    this.loading = true
+                    try {
+                        const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/mongodb', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer ddSDvKia1cVDsfcWLifkTztgZgn2',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                appSlug: 'shuats-attendance-123',
+                                action: 'read',
+                                collection: 'attendance'
+                            })
+                        })
+                        const data = await response.json()
+                        if (data.success) {
+                            this.attendanceList = data.result
+                        }
+                    } catch (error) {
+                        console.error('Error fetching attendance:', error)
+                    }
+                    this.loading = false
+                },
+                async addAttendance() {
+                    this.loading = true
+                    try {
+                        const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/mongodb', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer ddSDvKia1cVDsfcWLifkTztgZgn2',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                appSlug: 'shuats-attendance-123',
+                                action: 'create',
+                                collection: 'attendance',
+                                data: {
+                                    date: this.date,
+                                    course: this.course,
+                                    studentName: this.studentName,
+                                    studentId: this.studentId,
+                                    status: this.status
+                                }
+                            })
+                        })
+                        const data = await response.json()
+                        if (data.success) {
+                            this.date = ''
+                            this.course = ''
+                            this.studentName = ''
+                            this.studentId = ''
+                            this.status = 'present'
+                            await this.fetchAttendance()
+                        }
+                    } catch (error) {
+                        console.error('Error adding attendance:', error)
+                    }
+                    this.loading = false
+                },
+                async deleteRecord(id) {
+                    if (!confirm('Are you sure you want to delete this record?')) return
+                    
+                    this.loading = true
+                    try {
+                        const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/mongodb', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer ddSDvKia1cVDsfcWLifkTztgZgn2',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                appSlug: 'shuats-attendance-123',
+                                action: 'delete',
+                                collection: 'attendance',
+                                id: id
+                            })
+                        })
+                        const data = await response.json()
+                        if (data.success) {
+                            await this.fetchAttendance()
+                        }
+                    } catch (error) {
+                        console.error('Error deleting record:', error)
+                    }
+                    this.loading = false
+                }
+            },
+            mounted() {
+                this.fetchAttendance()
+            }
+        }).mount('#app')
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
